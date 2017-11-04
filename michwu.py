@@ -1,4 +1,4 @@
-def prints(s, end=True):
+def prints(s='', end=True):
     if end:
         print s
     else:

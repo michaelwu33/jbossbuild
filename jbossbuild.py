@@ -25,7 +25,7 @@ def cleanup(param):
     prints('Done')
 
 
-def get_parameter():
+def set_parameter_interactive():
     retfile = ""
 
     print "in the get_parameter"
@@ -37,10 +37,11 @@ def get_parameter():
 def validate_parameter(pf):
     import ConfigParser as configparser
 
-    prints("Validating parameters ...")
+    prints("Validating parameters ...", end=False)
 
     if not (os.path.isfile(pf) and os.access(pf, os.R_OK)):
-        prints("File {!s} does not appear to exist or isn't readable.".format(pf))
+        prints(
+            "File {!s} does not appear to exist or isn't readable.".format(pf))
         return None
 
     config = configparser.ConfigParser()
@@ -48,7 +49,8 @@ def validate_parameter(pf):
         config.read(pf)
     except Exception as e:
         prints(e)
-        prints("Please make sure parameters are set properly in {0}.".format(pf))
+        prints(
+            "Please make sure parameters are set properly in {0}.".format(pf))
         return None
 
     section = "main"
@@ -233,7 +235,7 @@ def buildJBoss():
 
     if os.getuid() != 0:
         prints("Build script MUST be run by super user 'root'.")
-        #sys.exit(1)
+        sys.exit(1)
 
     errflag = False
 
@@ -247,22 +249,22 @@ def buildJBoss():
     jfile = args.jFile
 
     # Do a simple existence check for parameter file and package file
-    if not ( os.path.isfile(jfile) and os.access(jfile, os.R_OK)):
-        prints("The specified JBoss package {0} does not exist or isn't readable.".format(jfile))
+    if not (os.path.isfile(jfile) and os.access(jfile, os.R_OK)):
+        prints("Package file {0} is not found!".format(jfile))
         errflag = True
     else:
         if not tarfile.is_tarfile(jfile):
-            prints("File {0} is not a supported archive file.".format(jfile))
+            prints("{0} is not a supported archive file.".format(jfile))
             errflag = True
     if pfile and (not (os.path.isfile(pfile) and os.access(pfile, os.R_OK))):
-        prints("The specified parameter file {0} does not exist or isn't readable.".format(pfile))
+        prints("Parameter file {0} is not found!".format(pfile))
         errflag = True
     if errflag:
         sys.exit(1)
 
     # interactive getting setting if parameter file is not specified
     if not pfile:
-        pfile = get_parameter()
+        pfile = set_parameter_interactive()
 
     # validate settings in parameter file, something is wrong
     # if validation returns 'None'
@@ -271,7 +273,8 @@ def buildJBoss():
     if p is None:
         sys.exit(1)
 
-    prints("Extracting archive file {0} to application folder {0} ...".format(jfile, p['APP_HOME']), end=False)
+    prints("Extracting archive file {0} to application folder {1} ...".format(
+        jfile, p['APP_HOME']), end=False)
     try:
         tar = tarfile.open(jfile)
         tar.extractall(p['APP_HOME'])
@@ -319,7 +322,8 @@ def buildJBoss():
 
     prints("Updating user's login profile ... ", end=False)
     bashfile = p['runhomedir'] + '/.bashrc'
-    if (os.path.isfile(bashfile) and os.access(bashfile, os.W_OK)) or (not os.path.exists(bashfile)):
+    if (os.path.isfile(bashfile) and os.access(bashfile, os.W_OK)) or (
+            not os.path.exists(bashfile)):
         try:
             with open(bashfile, 'a') as f:
                 s = "\n"
@@ -339,10 +343,11 @@ def buildJBoss():
     d = p['APP_HOME'] + '/Repositories'
     try:
         if not os.path.isdir(d):
-            # an OSError exception will be raised if there is an 
+            # an OSError exception will be raised if there is an
             # existing regular file with same name
             os.mkdir(d)
-        dstfile = d + '/' + os.path.basename(jfile) + datetime.now().strftime('.%Y%m%d%H%M')
+            os.chown(d, p['msouid'], p['grpid'])
+        dstfile = d + '/' + os.path.basename(jfile) + '.' + datetime.now().strftime('%Y%m%d%H%M')
         shutil.copy2(jfile, dstfile)
         # copied repo file to be cleaned up in case failure?
         os.chown(dstfile, p['msouid'], p['grpid'])
@@ -352,7 +357,15 @@ def buildJBoss():
     else:
         prints("Done.")
 
-    prints("\nJBoss binary installed successfully!\n")
+    s = "\n\nCongratulations! JBoss has been installed successfully!\n\n"
+    s = s + "Next step please login as user '{0}',".format(p['RUN_USER'])
+    s = s + "then run below command to have JBoss instance setup.\n"
+    s = s + "\t{0}/jboss-setup.bash\n\n".format(p['JBOSS_CUSTOM_SCRIPT_DIR'])
+    s = s + "Once setup is done, you can start or stop JBoss instance by "
+    s = s + "running below commands as user '{0}':\n".format(p['RUN_USER'])
+    s = s + "\t{0}/start-jboss.sh\n".format(p['JBOSS_CUSTOM_SCRIPT_DIR'])
+    s = s + "\t{0}/stop-jboss.sh\n".format(p['JBOSS_CUSTOM_SCRIPT_DIR'])
+    prints(s)
 
 
 if __name__ == "__main__":
