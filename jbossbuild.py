@@ -13,7 +13,6 @@ import shutil
 from datetime import datetime
 
 
-
 def cleanup(param):
     prints("Cleaning up ...", end=False)
     try:
@@ -27,12 +26,40 @@ def cleanup(param):
 
 
 def set_parameter_interactive():
-    retfile = ""
-
-    print "in the get_parameter"
-    retfile = raw_input("input parameter filename")
-
-    return retfile
+    """User to input mandatory setting for JBoss installation.
+    Required settings are:
+    application home, mso account, run account, and group
+    """
+    s = "good"
+    while s:
+        apphome = raw_input('Application Home: ').strip()
+        mso = raw_input('MSO Account: ').strip()
+        run = raw_input("RUN Account: ").strip()
+        group = raw_input("Group: ").strip()
+        s = ""
+        if not apphome:
+            s = s + "Application home must be inputed.\n"
+        if not mso:
+            s = s + "MSO account must be inputed.\n"
+        if not run:
+            s = s + "RUN account must be inputed.\n"
+        if not group:
+            s = s + "Group must be inputed.\n"
+        if s:
+            prints(s)
+            yn = raw_input("Press Q/q to quit, other to re-enter ...")
+            if yn.strip().lower() in ("q", "quit"):
+                sys.exit(1)
+    # save settings to a temporary parameter file
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+        s = "[main]\n"
+        s = s + "APP_HOME={0}\n".format(apphome)
+        s = s + "MSO_USER={0}\n".format(mso)
+        s = s + "RUN_USER={0}\n".format(run)
+        s = s + "GRP_USER={0}\n".format(group)
+        f.write(s)
+        return f.name
 
 
 def validate_parameter(pf):
@@ -266,10 +293,12 @@ def buildJBoss():
     # interactive getting setting if parameter file is not specified
     if not pfile:
         pfile = set_parameter_interactive()
+        if not pfile:
+            sys.exit(1)
 
     # validate settings in parameter file, something is wrong
     # if validation returns 'None'
-    # Dict 'params' keeps parsed settings
+    # Dict 'p' keeps parsed settings
     p = validate_parameter(pfile)
     if p is None:
         sys.exit(1)
