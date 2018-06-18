@@ -168,6 +168,7 @@ def validate_parameter(pf):
 
     # Optional
     # jboss_ip_management
+    section = 'optional'
     if config.has_option(section, 'JBOSS_IP_MANAGEMENT'):
         try:
             option = config.get(section, 'JBOSS_IP_MANAGEMENT')
@@ -200,7 +201,7 @@ def validate_parameter(pf):
         except Exception as e:
             prints("Warning: JBOSS_PORT_OFFSET has invalid value '{0}' will be set to default 0.".format(option))
             option = '0'
-        params['JBOSS_PORT_OFFSET'] = option
+        params['JBOSS_PORT_OFFSET'] = str(option)
     else:
         params['JBOSS_PORT_OFFSET'] = '0'
 
@@ -252,10 +253,21 @@ def validate_parameter(pf):
     # TODO
     # xmx >= xms
     # xmx < physical memory
-    params['JVM_METASPACESIZE'] = '96m'
-    params['JVM_MAXMETASPACESIZE'] = '256m'
+    
+    # jvm_metaspacesize
+    if config.has_option(section, 'JVM_METASPACESIZE'):
+        params['JVM_METASPACESIZE'] = str(config.get(section, 'JVM_METASPACESIZE'))
+    else:
+        params['JVM_METASPACESIZE'] = '96m'
+    # jvm_maxmetaspacesize
+    if config.has_option(section, 'JVM_MAXMETASPACESIZE'):
+        params['JVM_MAXMETASPACESIZE'] = str(config.get(section, 'JVM_MAXMETASPACESIZE'))
+    else:
+        params['JVM_MAXMETASPACESIZE'] = '256m'
+    # TODO
+    # maxmetaspacesize < metaspacesize
 
-    prints("Done")
+    prints("Parameter Validated!")
     return params
 
 
